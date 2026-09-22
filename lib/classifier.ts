@@ -4,6 +4,7 @@ import {
   FALLBACK_CATEGORY,
   type KaosCategory,
 } from "./templates";
+import { getEnv } from "./env";
 
 /**
  * Ücretsiz AI sağlayıcı zinciri.
@@ -16,28 +17,42 @@ import {
  * Not (2026): Groq'da bazı modeller "reasoning" yaptığı için cevap gecikir ve
  * pahalıya patlar. Sınıflandırma için hızlı + json_object destekleyen
  * qwen/qwen3.8-27b varsayılan seçildi.
+ *
+ * Ortam değişkenleri her istekte okunur (Cloudflare Workers'te binding'ler
+ * sadece request anında erişilebildiği için).
  */
-const PROVIDERS = [
-  {
-    id: "groq",
-    baseURL: "https://api.groq.com/openai/v1",
-    model: process.env.GROQ_MODEL ?? "qwen/qwen3.8-27b",
-    apiKey: process.env.GROQ_API_KEY,
-  },
-  {
-    id: "openrouter",
-    baseURL: "https://openrouter.ai/api/v1",
-    // OpenRouter'daki :free modeller ücretsizdir (anlık liste değişebilir).
-    model: process.env.OPENROUTER_MODEL ?? "deepseek/deepseek-chat-v3-0324:free",
-    apiKey: process.env.OPENROUTER_API_KEY,
-  },
-  {
-    id: "cerebras",
-    baseURL: "https://api.cerebras.ai/v1",
-    model: process.env.CEREBRAS_MODEL ?? "llama-3.3-70b",
-    apiKey: process.env.CEREBRAS_API_KEY,
-  },
-];
+type Provider = {
+  id: string;
+  baseURL: string;
+  model: string;
+  apiKey?: string;
+};
+
+async function getProviders(): Promise<Provider[]> {
+  const providers: Provider[] = [
+    {
+      id: "groq",
+      baseURL: "https://api.groq.com/openai/v1",
+      model: (await getEnv("GROQ_MODEL")) ?? "qwen/qwen3.8-27b",
+      apiKey: await getEnv("GROQ_API_KEY"),
+    },
+    {
+      id: "openrouter",
+      baseURL: "https://openrouter.ai/api/v1",
+      // OpenRouter'daki :free modeller ücretsizdir (anlık liste değişebilir).
+      model: (await getEnv("OPENROUTER_MODEL")) ?? "deepseek/deepseek-chat-v3-0324:free",
+      apiKey: await getEnv("OPENROUTER_API_KEY"),
+    },
+    {
+      id: "cerebras",
+      baseURL: "https://api.cerebras.ai/v1",
+      model: (await getEnv("CEREBRAS_MODEL")) ?? "llama-3.3-70b",
+      apiKey: await getEnv("CEREBRAS_API_KEY"),
+    },
+  ];
+
+  return providers.filter((p) => p.apiKey);
+}
 
 const TIMEOUT_MS = 10_000;
 const MAX_TOKENS = 100;
@@ -49,7 +64,7 @@ type CallResult =
 
 /** Tek bir sağlayıcıyla tek bir istek dener. */
 async function callOnce(
-  provider: (typeof PROVIDERS)[number],
+  provider: Provider,
   message: string,
   useJson: boolean
 ): Promise<CallResult> {
@@ -67,7 +82,7 @@ async function callOnce(
         // OpenRouter, kullanım amacı için bu header'ları ister (opsiyonel).
         ...(provider.id === "openrouter"
           ? {
-              "HTTP-Referer": "https://kaosbot.onrender.com",
+              "HTTP-Referer": "https://kaosbot.pages.dev",
               "X-Title": "KaosBot",
             }
           : {}),
@@ -111,7 +126,7 @@ function parseCategory(content: string): KaosCategory | null {
 
 /** Bir sağlayıcıyı dener; JSON modu reddedilirse düz modla tekrar dener. */
 async function tryClassify(
-  provider: (typeof PROVIDERS)[number],
+  provider: Provider,
   message: string
 ): Promise<KaosCategory | null> {
   let result = await callOnce(provider, message, true);
@@ -148,7 +163,7 @@ async function tryClassify(
 
 /** Mesajı sınıflandırır. Bütün sağlayıcılar fail'leirse RANDOM'a düşer. */
 export async function classifyIntent(message: string): Promise<KaosCategory> {
-  const available = PROVIDERS.filter((p) => p.apiKey);
+  const available = await getProviders();
 
   if (available.length === 0) {
     console.warn("[classifier] HİÇBİR AI anahtarı yok, hep RANDOM kullanılacak.");
