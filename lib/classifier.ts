@@ -2,6 +2,7 @@ import {
   CLASSIFIER_SYSTEM_PROMPT,
   KAOS_CATEGORIES,
   FALLBACK_CATEGORY,
+  sanitizeTopic,
   type KaosCategory,
 } from "./templates";
 import { getEnv } from "./env";
@@ -110,25 +111,46 @@ async function callOnce(
   }
 }
 
-function parseCategory(content: string): KaosCategory | null {
-  const match = content.match(/\{"category"\s*:\s*"([^"]+)"\}/i);
-  if (!match) return null;
-  const candidate = match[1].toUpperCase() as string;
-  if ((KAOS_CATEGORIES as string[]).includes(candidate)) {
-    return candidate as KaosCategory;
+/** Sınıflandırma sonucu: kategori + kullanıcının konusu. */
+export type Intent = {
+  category: KaosCategory;
+  topic: string | null;
+};
+
+function parseIntent(content: string): Intent | null {
+  // JSON formatı: {"category": "...", "topic": "..."}
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const obj = JSON.parse(jsonMatch[0]);
+      const candidate = String(obj?.category ?? "").toUpperCase();
+      if ((KAOS_CATEGORIES as string[]).includes(candidate)) {
+        return {
+          category: candidate as KaosCategory,
+          topic: sanitizeTopic(
+            typeof obj?.topic === "string" ? obj.topic : null
+          ),
+        };
+      }
+    } catch {
+      // Geçersiz JSON → aşağıdaki düz kategori kontrolüne düş.
+    }
   }
+
   // Bazen model sadece "INSULT" gibi çıplak kelime döner.
-  const direct = (KAOS_CATEGORIES as string[]).find(
-    (c) => content.toUpperCase() === c
-  );
-  return (direct as KaosCategory | undefined) ?? null;
+  const plain = content.trim().toUpperCase();
+  if ((KAOS_CATEGORIES as string[]).includes(plain)) {
+    return { category: plain as KaosCategory, topic: null };
+  }
+
+  return null;
 }
 
 /** Bir sağlayıcıyı dener; JSON modu reddedilirse düz modla tekrar dener. */
 async function tryClassify(
   provider: Provider,
   message: string
-): Promise<KaosCategory | null> {
+): Promise<Intent | null> {
   let result = await callOnce(provider, message, true);
 
   // Bazı sağlayıcılar response_format'ı desteklemez (400/422): düz moda düş.
@@ -140,8 +162,8 @@ async function tryClassify(
   }
 
   if (result.kind === "ok") {
-    const category = parseCategory(result.content);
-    if (category) return category;
+    const intent = parseIntent(result.content);
+    if (intent) return intent;
   } else if (result.kind === "http-error") {
     const reason =
       result.status === 429
@@ -161,19 +183,22 @@ async function tryClassify(
   return null;
 }
 
-/** Mesajı sınıflandırır. Bütün sağlayıcılar fail'leirse RANDOM'a düşer. */
-export async function classifyIntent(message: string): Promise<KaosCategory> {
+/**
+ * Mesajı sınıflandırır ve konu çıkarır.
+ * Bütün sağlayıcılar fail'leirse kategori RANDOM, konu null olur.
+ */
+export async function classifyIntent(message: string): Promise<Intent> {
   const available = await getProviders();
 
   if (available.length === 0) {
     console.warn("[classifier] HİÇBİR AI anahtarı yok, hep RANDOM kullanılacak.");
-    return FALLBACK_CATEGORY;
+    return { category: FALLBACK_CATEGORY, topic: null };
   }
 
   for (const provider of available) {
-    const category = await tryClassify(provider, message);
-    if (category) return category;
+    const intent = await tryClassify(provider, message);
+    if (intent) return intent;
   }
 
-  return FALLBACK_CATEGORY;
+  return { category: FALLBACK_CATEGORY, topic: null };
 }

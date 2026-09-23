@@ -43,9 +43,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 4) Sınıflandır + şablondan cevap seç
-  const category = await classifyIntent(message);
-  const reply = pickTemplate(category);
+  // 4) Sınıflandır (kategori + konu) ve şablondan cevap seç
+  const intent = await classifyIntent(message);
+  const reply = pickTemplate(intent.category, intent.topic);
 
-  return NextResponse.json({ reply, category });
+  return NextResponse.json({
+    reply,
+    category: intent.category,
+    topic: intent.topic,
+  });
 }

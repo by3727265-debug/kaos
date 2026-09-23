@@ -1,6 +1,8 @@
 /**
  * KAOSBOT — Şablon Havuzu
- * LLM (Groq) yalnızca kategori seçer; cevap bu havuzdan rastgele gelir.
+ * LLM (Groq) "kategori + konu" çıkarır; cevap bu havuzdan rastgele gelir.
+ * - {topic} içeren şablonlar: kullanıcının konusuna göre örülür (örn. "İş ha? ...")
+ * - {topic} içermeyen şablonlar: konu çıkarılamazsa (null) kullanılır.
  * Böylece tam kontrol sende olur ve API maliyeti minimumda kalır.
  */
 
@@ -23,107 +25,151 @@ export const KAOS_CATEGORIES: KaosCategory[] = [
 
 export const TEMPLATES: Record<KaosCategory, string[]> = {
   ABSURD: [
-    "Senin sorun bir taksiciyi öpen uçan balık gibi.",
-    "Amına koyayım, bu soru bir simit gibi yağlı ama bir o kadar da boş.",
-    "Valla cevap yok, şu an sadece kırmızı bir sarımsak düşünüyorum.",
-    "Bu sorunun cevabı uzaydaki döner tezgâhında, oraya git.",
-    "Kafanda bir buzdolabı var ve kapısı açık, fark etmiyorsun.",
-    "Ben bir cevap vereceğim ama önce bu kaktüsü sevmem lazım.",
-    "Senin lafın bir çorbanın içindeki laktozsuz korku gibi.",
+    "{topic} ha? Senin bu işin bir taksiciyi öpen uçan balık gibi.",
+    "{topic} deyince aklıma bir şey geldi: kırmızı bir sarımsak. O kadar.",
+    "{topic} mi? Cevap uzaydaki döner tezgâhında, oraya git.",
+    "{topic} konusunda kafanda bir buzdolabı var, kapısı açık, fark etmiyorsun.",
+    "{topic} için önce şu kaktüsü sevmem lazım, bekle.",
+    "{topic} sorunu bir çorbanın içindeki laktozsuz korku gibi.",
+    "{topic} mevzusu keyfimi kaçırdı, tavanı izliyorum, amına koyayım.",
+    "Valla cevap yok, şu an sadece sarımsak düşünüyorum.",
     "Bunu bi' kemiği olan kuşa sor, ben bu işten anlamam.",
-    "Sen hâlâ cevap bekliyorsun, ben ise tavanı izliyorum, amına koyayım.",
-    "Bu soru bana keman çalarak otururken geldi, okurken bile abartılı buldum.",
     "Cevabın kınalı bir yalnızlıkla kuzu çorbası arasında bir yerlerde.",
     "Soru güzelmiş ama ben yemek yedim, konuyu öğleye bıraktım.",
+    "Bu soru keman çalarak otururken geldi, okurken bile abartılı buldum.",
   ],
   INSULT: [
+    "{topic} mi? Senin onu anlaman bidonun içinde ayna aramak gibi.",
+    "Bir de {topic} diye ağzına alıyorsun, o konuda bile yanlışsın.",
+    "Senin {topic} halin, topal bir eşekle maraton koşmak gibi.",
+    "{topic} konusunda kafan bu kadar boşsa mağara turu bile kısıtlı kaldı.",
+    "Sen {topic} diyorsun ama düşünsen fabrika bacan duman çıkar, enerji üretmez.",
+    "Ağzından {topic} lafı çıkarken bile denizatının vergi beyannamesini andırıyorsun.",
+    "Seninle {topic} konuşmak, havasız kavanozda ıslık çalmak gibi.",
     "Zekân bir mikrofona küfür eden serseri gibi; mekanizmayı tıkırdatamıyorsun.",
     "Beyninin kıvrımları yumuşak karpuza benziyor, dokununca eziliyorsun.",
-    "Senin anlayışın, bir bidonun içinde ayna ararken evi yıkan adamla eşdeğer.",
-    "Kafan bu kadar boşsa mağara turu bile kısıtlı kaldı, amına koyayım.",
-    "Sen bir düşündüğünde fabrika bacasından duman çıkar ama enerji üretmez.",
-    "Seninle bu konuşma, topal bir eşekle maraton koşmak gibi.",
-    "Ağzından çıkan laflar bir denizatının vergi beyannamesini andırıyor.",
-    "Senin fikrin, kapısız bir gemide pencere aramak gibi.",
     "Oğlum senin aklınla kırk kişi yaşasa hepsi kaybolurdu.",
-    "Seninle düşünerek konuşmak, havasız kavanozda ıslık çalmak gibi.",
-    "Sana test sorsalar cevap da şık da hakkını veremez.",
+    "Senin fikrin, kapısız bir gemide pencere aramak gibi.",
     "Konuşman müsveddenin müsveddesi, yazsan kargacık burgacık kalır.",
   ],
   PHILOSOPHICAL: [
-    "Varlık bir çöp kutusudur; sen de içinde küflenmiş ekmek parçasısın.",
-    "Yaşam bir sibyan mektebi, sen de köşede pantolonu yırtık duran çocuksun.",
+    "{topic} dediğin şey aslında bir çöp kutusu; sen de içinde küflenmiş ekmek parçasısın.",
+    "Derinleş: {topic} bir yumurtadır, sen onu kaynatırken düşünüyorsun. Özet bu.",
+    "Senin için {topic} bir kapı; ama kolların yanda, giremiyorsun.",
+    "{topic} hakkında en derin sözüm: kimse kimseye benzemez derler, sen ise kendine bile benzemiyorsun.",
+    "Dünya dönüyor derler; ama sen {topic} derken kafanın içinde pedal çeviren yok.",
+    "{topic} bir labirent; senin cevabın ise labirentin ortasındaki kuru ekmek.",
+    "Hayat bir market reyonu; sen de {topic} derken elinde boş sepetle geziniyorsun.",
     "İnsan dediğin, yürüyen bir tuvalet rulosundan hallice.",
-    "Soru sormak kolaydır; asıl mesele cevabın çorabını bulmak.",
-    "Zaman bir yumurta, sen onu kaynatırken düşünüyorsun. Özet bu.",
-    "Dünya dönüyor derler, ama senin kafanın içinde pedal çeviren yok.",
     "Bir bardak çay aslında mezar taşıdır; sen görmeyi bilmiyorsun.",
-    "Kimse kimseye benzemez derler, sen ise kendine bile benzemiyorsun.",
-    "Senin için her şey bir kapı, ama kolların yanda; giremiyorsun.",
-    "Hayat bir market reyonu; sen elinde boş sepetle gezinen misafirsin.",
-    "Derin düşünce dediğin, yorganın altında kaybolan terliktir; bulabildin mi?",
-    "Soruların bir labirent, cevapların ise labirentin ortasındaki kuru ekmek.",
+    "Derin düşünce yorganın altında kaybolan terliktir; bulabildin mi?",
+    "Soru sormak kolaydır; asıl mesele cevabın çorabını bulmak.",
   ],
   SEXUAL: [
+    "{topic} mi? Amına koyayım öyle bir muhabbet attın ki mutfaktaki tencere utandı.",
+    "Seninle {topic} konuşmak, gece yarısı arayan eski sevgili kadar samimiyetsiz.",
+    "{topic} konusunda isteklerin, dükkânın önünde beklemiş ayakkabı tadında.",
+    "Amına koyayım, {topic} diye soru sorana pazar yerinde bile yer yok.",
+    "Senin {topic} hevesin, pazartesi sabahı perdeyi yırtan bir kedi gibi.",
+    "Bu {topic} muhabbetinin sonu yok, ortası da yok, sadece kıyamet var.",
+    "Seninle en derin muhabbetimiz {topic} değil, vestiyerdeki çakmak kavgası olurdu.",
     "Seninle bu iş, tavada kalan yağın kimseyle evlenmemesi gibi.",
-    "Amına koyayım öyle bir soru attın ki, mutfaktaki tencere utandı.",
     "Bunu bir sonraki hayatına erteledik, rezervasyon kapattık.",
-    "Senin bu sorun, gece yarısı arayan eski sevgili kadar samimiyetsiz.",
-    "İsteklerin, bir dükkânın önünde beklemiş ayakkabı tadında.",
-    "Amına koyayım, böyle soru sorana pazar yerinde bile yer yok.",
-    "Senin hevesin, pazartesi sabahı perdeyi yırtan bir kedi gibi.",
-    "Bu muhabbetin sonu yok, ortası da yok, sadece kıyamet var.",
     "Gözlerin değil cüzdanının derinliği konuşuyor bu saatte, oğlum.",
-    "Seninle en derin muhabbetimiz vestiyerdeki çakmak kavgası olurdu.",
     "Bu sorunun altından kalkmak için bariyerleri yıkan bir forklift lazım.",
-    "Sen soruyorsun diye cevap vermedim, sorun sende değil sorunda.",
   ],
   NONSENSE: [
-    "Palikarya misıra küserse, senin sorunun mazisi 1973'tür.",
+    "{topic} ha? Palikarya misıra küserse senin bu işin mazisi 1973'tür.",
+    "Şu {topic} mevzusu, çizmenin içinde terliyorken soru soran serçeleri çağrıştırıyor.",
+    "{topic} deyince bambaşka bir şey oldu: sarı bir kalem uçtu, sarımsak ağladı.",
+    "{topic} meselesi mi? Buzdolabındaki portakal iki kez homurdandı, üçüncüsünde sorun çıktı.",
+    "{topic} konusunun düğümü şurada: kuzu adadaki genel sekreter kapıyı çaldı, kapı açmadı.",
+    "{topic} derken cebimdeki cüzdan üç dilim çavdar ekmeğine sinirlendi, her şey netleşti.",
+    "{topic} işi, mitokondri yağmuru yağarken kefenlerin acele etmemesi gibi; derin mevzu.",
     "Fil girer ağızdan, çıkar göbek deliğinden; sen hâlâ panelde olduğunu sanıyorsun.",
-    "Sarı bir kalem uçtu, bir sarımsak ağladı, sen hâlâ bu konuyu gömmüyorsun.",
     "Duvarın çayı kızınca tavanı hıçkırık tutuyor, işin özü bu.",
     "Karmakarışık bir kemanla denize indik, yelkenler lahana gibi sarktı.",
-    "Buzdolabındaki portakal iki kez homurdandı, üçüncüsünde sorun çıktı.",
-    "Senin sorun, çizmenin içinde terliyorken soru soran serçeleri çağrıştırıyor.",
-    "Kuzu adadaki genel sekreter kapıyı çaldı, kapı açmadı. Mevzu bu.",
     "Pazardan aldığım terlikler öğle vakti ağlıyor, meselenin düğümü burada.",
-    "Cebimdeki cüzdan üç dilim çavdar ekmeğine sinirlenince her şey netleşti.",
-    "Mitokondri yağmuru yağarken kefenler acele etmiyor, derin mevzu.",
     "Sen dahil herkes, ama özellikle kaplumbağalar, kışı böyle geçirdi.",
   ],
   RANDOM: [
-    "Tavukları neden sevmezsin? Onlar da bir gün uçmayı öğrenecek.",
-    "Geçen salı bir çorap kayboldu, o çorap bu sorunun cevabını biliyor.",
+    "{topic} ha? Tavukları neden sevmezsin, onlar da bir gün uçmayı öğrenecek.",
+    "{topic} deyince aklıma gelen tek şey: geçen salı kaybolan bir çorap. Cevap o.",
+    "Açıkçası {topic} benim alanım değil; ben bir metrobüs durağı gibi varım.",
+    "{topic} sorusuna cevabım yok ama bu gece yatmadan önce bir tavla zarı buldum, sana doğal bir hesap.",
+    "{topic} mu? Ben direkt son soruya geçmek istiyorum ama kimse geçmiyor.",
+    "Sen bir de {topic} demişsin; yarın cenaze kaldıracaktık, sen soru soruyorsun.",
+    "Kediler {topic} konusunda ne yapıyor biliyorum ama söylemeyeceğim; al senin cevabın.",
     "Ben bir asansör gibi çalışıyorum: bazen yukarı, bazen aşağı, hep karanlık.",
-    "Açıkçası ben bir cevap değilim, ben bir metrobüs durağı gibi varım.",
     "Cevabım sen bilmediğin için yok, kusura bakma.",
     "Bu soru bir karınca için Everest Dağı kadar anlamsız.",
-    "Ben direkt son soruya geçmek istiyorum ama kimse geçmiyor.",
-    "Yarın sabah bir cenaze kaldıracaktık, sen soru soruyorsun.",
     "Bir de bana 'sen anlamazsın' diyorlar; haklılar, anlamadım.",
-    "Bu gece yatmadan önce bir tavla zarı buldum, sana doğal bir hesap.",
     "Senden bir adet daha soru duyarsam çorba içmekten vazgeçeceğim.",
-    "Kedilerin ne yaptığını biliyorum ama söylemeyeceğim; al senin cevabın.",
   ],
 };
 
 /** Sınıflandırıcı kategori döndüremezse bu kategori kullanılır. */
 export const FALLBACK_CATEGORY: KaosCategory = "RANDOM";
 
-/** Groq'a giden sınıflandırma promptu — yalnızca kategori üretir. */
+/** Konu çıkarılamazsa {topic} yerine geçer. */
+export const FALLBACK_TOPIC = "Mevzu";
+
+/** Kullanıcının konusu metne gömülmeden önce temizlenir. */
+export function sanitizeTopic(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const clean = raw
+    .replace(/\{topic\}/gi, "")
+    .replace(/[\r\n\t]+/g, " ")
+    .trim()
+    .slice(0, 60);
+  return clean.length > 0 ? clean : null;
+}
+
+/** Groq'a giden sınıflandırma promptu — kategori + konu üretir. */
 export const CLASSIFIER_SYSTEM_PROMPT = `
 Sen bir "KaosBot" sınıflandırıcısısın. Kullanıcının mesajını oku ve
-şu kategorilerden TAM OLARAK birini JSON olarak döndür:
+JSON olarak şu iki alanı döndür:
+
+1) "category": şu kategorilerden TAM OLARAK biri:
 ${KAOS_CATEGORIES.join(", ")}.
 
-Sadece şu formatta yanıt ver, başka hiçbir şey yazma:
-{"category": "RANDOM"}
+2) "topic": kullanıcının asıl bahsettiği konu veya duygu. En fazla 3-4
+kelimelik kısa bir deyim olsun (küçük harf). Küfür/argo olağan ama kısa
+kalmalı. Mesajda net bir konu yoksa (ör. sadece "selam", "ha", "nasılsın")
+"topic" değerini null yap, "category" yine doldur.
+
+Örnekler:
+Mesaj: "banka işleri için geldim kanka"
+→ {"category": "ABSURD", "topic": "banka"}
+Mesaj: "hiçbir şey yapasım yok"
+→ {"category": "PHILOSOPHICAL", "topic": "hiçbir şey yapmamak"}
+Mesaj: "selam"
+→ {"category": "RANDOM", "topic": null}
+
+Sadece JSON döndür, başka hiçbir şey yazma.
 `;
 
-/** Bir kategoriden rastgele şablon seçer. */
-export function pickTemplate(category: KaosCategory): string {
-  const pool = TEMPLATES[category];
-  if (!pool || pool.length === 0) return TEMPLATES[FALLBACK_CATEGORY][0];
-  return pool[Math.floor(Math.random() * pool.length)];
+/** Bir kategoriden rastgele şablon seçer; konu varsa {topic} ile örer. */
+export function pickTemplate(
+  category: KaosCategory,
+  topic?: string | null
+): string {
+  const pool = TEMPLATES[category] ?? TEMPLATES[FALLBACK_CATEGORY];
+  if (pool.length === 0) return TEMPLATES[FALLBACK_CATEGORY][0];
+
+  const cleanTopic = sanitizeTopic(topic);
+  const withTopic = pool.filter((t) => t.includes("{topic}"));
+  const generic = pool.filter((t) => !t.includes("{topic}"));
+
+  // Konu varsa konuya göre şablon seç; yoksa jenerik şablon seç.
+  const list = cleanTopic
+    ? withTopic.length > 0
+      ? withTopic
+      : generic
+    : generic.length > 0
+    ? generic
+    : withTopic;
+
+  const chosen = list[Math.floor(Math.random() * list.length)];
+  return chosen.replaceAll("{topic}", cleanTopic ?? FALLBACK_TOPIC);
 }

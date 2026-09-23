@@ -7,9 +7,12 @@ Absürt, küfürlü ve saçma konuşan eğlence amaçlı kurgusal chat botu.
 Hibrit yaklaşım:
 
 1. Kullanıcı mesajı `/api/chat`'e gider.
-2. **Groq** (ücretsiz API) mesajın *niyetini* sınıflandırır:
-   `ABSURD | INSULT | PHILOSOPHICAL | SEXUAL | NONSENSE | RANDOM`
-3. `lib/templates.ts` havuzundan **rastgele** bir cevap seçilir ve döner.
+2. **Groq** (ücretsiz API) mesajdan şunları çıkarır:
+   - `category`: `ABSURD | INSULT | PHILOSOPHICAL | SEXUAL | NONSENSE | RANDOM`
+   - `topic`: kullanıcının bahsettiği konu (kısa bir deyim)
+3. `lib/templates.ts` havuzundan **rastgele** bir cevap seçilir ve `{topic}`
+   yerine konu yerleştirilir — cevap senin anlattığın konuya dokunur ama metin
+   yine tamamen el yazımı şablonlardan gelir.
 
 LLM asla cevap üretmez — bu yüzden maliyet neredeyse sıfır ve içerik tam
 kontrolü sende.
