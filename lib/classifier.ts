@@ -2,7 +2,7 @@ import {
   CLASSIFIER_SYSTEM_PROMPT,
   KAOS_CATEGORIES,
   FALLBACK_CATEGORY,
-  sanitizeTopic,
+  sanitizeReply,
   type KaosCategory,
 } from "./templates";
 import { getEnv } from "./env";
@@ -56,7 +56,7 @@ async function getProviders(): Promise<Provider[]> {
 }
 
 const TIMEOUT_MS = 10_000;
-const MAX_TOKENS = 100;
+const MAX_TOKENS = 160;
 
 type CallResult =
   | { kind: "network-error" }
@@ -111,14 +111,14 @@ async function callOnce(
   }
 }
 
-/** Sınıflandırma sonucu: kategori + kullanıcının konusu. */
+/** Sınıflandırma sonucu: kategori + modelin yazdığı kısa cevap. */
 export type Intent = {
   category: KaosCategory;
-  topic: string | null;
+  reply: string | null;
 };
 
 function parseIntent(content: string): Intent | null {
-  // JSON formatı: {"category": "...", "topic": "..."}
+  // JSON formatı: {"category": "...", "reply": "..."}
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
@@ -127,8 +127,8 @@ function parseIntent(content: string): Intent | null {
       if ((KAOS_CATEGORIES as string[]).includes(candidate)) {
         return {
           category: candidate as KaosCategory,
-          topic: sanitizeTopic(
-            typeof obj?.topic === "string" ? obj.topic : null
+          reply: sanitizeReply(
+            typeof obj?.reply === "string" ? obj.reply : null
           ),
         };
       }
@@ -140,7 +140,7 @@ function parseIntent(content: string): Intent | null {
   // Bazen model sadece "INSULT" gibi çıplak kelime döner.
   const plain = content.trim().toUpperCase();
   if ((KAOS_CATEGORIES as string[]).includes(plain)) {
-    return { category: plain as KaosCategory, topic: null };
+    return { category: plain as KaosCategory, reply: null };
   }
 
   return null;
@@ -184,15 +184,16 @@ async function tryClassify(
 }
 
 /**
- * Mesajı sınıflandırır ve konu çıkarır.
- * Bütün sağlayıcılar fail'leirse kategori RANDOM, konu null olur.
+ * Mesajı sınıflandırır ve kısa bir cevap üretir.
+ * Model ret/boş cevap verirse reply null olur — çağıran şablona düşer.
+ * Bütün sağlayıcılar fail'leirse kategori RANDOM, reply null olur.
  */
 export async function classifyIntent(message: string): Promise<Intent> {
   const available = await getProviders();
 
   if (available.length === 0) {
     console.warn("[classifier] HİÇBİR AI anahtarı yok, hep RANDOM kullanılacak.");
-    return { category: FALLBACK_CATEGORY, topic: null };
+    return { category: FALLBACK_CATEGORY, reply: null };
   }
 
   for (const provider of available) {
@@ -200,5 +201,5 @@ export async function classifyIntent(message: string): Promise<Intent> {
     if (intent) return intent;
   }
 
-  return { category: FALLBACK_CATEGORY, topic: null };
+  return { category: FALLBACK_CATEGORY, reply: null };
 }

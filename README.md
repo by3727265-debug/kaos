@@ -4,18 +4,19 @@ Absürt, küfürlü ve saçma konuşan eğlence amaçlı kurgusal chat botu.
 
 ## Nasıl çalışıyor?
 
-Hibrit yaklaşım:
+Hibrit yaklaşım (minimum token):
 
 1. Kullanıcı mesajı `/api/chat`'e gider.
-2. **Groq** (ücretsiz API) mesajdan şunları çıkarır:
+2. **Groq** (ücretsiz API) tek çağrıda şunları üretir (`max_tokens: 160`):
    - `category`: `ABSURD | INSULT | PHILOSOPHICAL | SEXUAL | NONSENSE | RANDOM`
-   - `topic`: kullanıcının bahsettiği konu (kısa bir deyim)
-3. `lib/templates.ts` havuzundan **rastgele** bir cevap seçilir ve `{topic}`
-   yerine konu yerleştirilir — cevap senin anlattığın konuya dokunur ama metin
-   yine tamamen el yazımı şablonlardan gelir.
+   - `reply`: kullanıcının mesajına **kısa, konuya tam bağlı** absürt/küfürlü
+     cevap (gerçek sorulara gerçek cevap: "3+5 kaç yapar?" → "8 amk, zor muydu?")
+3. Cevap doğrudan gösterilir. Model ret/boş cevap verirse (`sanitizeReply`
+   tespit eder) `lib/templates.ts` havuzundan kategoriye uygun şablon devreye
+   girer — böylece site asla cevapsız kalmaz.
 
-LLM asla cevap üretmez — bu yüzden maliyet neredeyse sıfır ve içerik tam
-kontrolü sende.
+LLM "araştırma" yapmaz, tek küçük çağrıyla işini bitirir; maliyet neredeyse
+sıfır ve şablonlar hâlâ güvenlik ağı görevi görür.
 
 ## Giriş akışı
 

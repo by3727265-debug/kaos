@@ -43,13 +43,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 4) Sınıflandır (kategori + konu) ve şablondan cevap seç
+  // 4) Sınıflandır + kısa cevap üret; model ret ederse şablon havuzuna düş.
   const intent = await classifyIntent(message);
-  const reply = pickTemplate(intent.category, intent.topic);
+  const reply = intent.reply ?? pickTemplate(intent.category);
 
-  return NextResponse.json({
-    reply,
-    category: intent.category,
-    topic: intent.topic,
-  });
+  return NextResponse.json({ reply, category: intent.category });
 }
